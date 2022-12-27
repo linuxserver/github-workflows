@@ -1,0 +1,45 @@
+name: Mark stale issues and pull requests
+
+on:
+  workflow_call:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: lock
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/stale@v6.0.1
+        with:
+          stale-issue-message: This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
+          stale-pr-message: This pull request has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
+          stale-issue-label: no-issue-activity
+          stale-pr-label: no-pr-activity
+          days-before-stale: 30
+          days-before-close: 60
+          exempt-issue-labels: awaiting-approval,work-in-progress
+          exempt-pr-labels: awaiting-approval,work-in-progress
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  lock:
+    runs-on: ubuntu-latest
+    needs:
+      - stale
+
+    steps:
+      - uses: dessant/lock-threads@v4.0.0
+        with:
+          issue-inactive-days: "30"
+          include-any-issue-labels: no-issue-activity
+          issue-comment: This issue is locked due to inactivity
+          exclude-any-issue-labels: awaiting-approval,work-in-progress
+          pr-inactive-days: "30"
+          include-any-pr-labels: no-pr-activity
+          pr-comment: This pull request is locked due to inactivity
+          exclude-any-pr-labels: awaiting-approval,work-in-progress
