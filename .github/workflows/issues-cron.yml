@@ -27,8 +27,13 @@ jobs:
           exempt-pr-labels: awaiting-approval,work-in-progress
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: sleep for ratelimit
+        run: 
+          sleep 380
+
   lock:
     runs-on: ubuntu-latest
+    continue-on-error: true
     needs:
       - stale
 
