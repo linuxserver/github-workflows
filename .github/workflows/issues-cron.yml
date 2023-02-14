@@ -17,19 +17,21 @@ jobs:
     steps:
       - uses: actions/stale@v7.0.0
         with:
-          stale-issue-message: This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
-          stale-pr-message: This pull request has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
+          close-issue-label: closed-issue-activity
+          close-pr-label: closed-pr-activity
           stale-issue-label: no-issue-activity
+          stale-issue-message: This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
           stale-pr-label: no-pr-activity
+          stale-pr-message: This pull request has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
           days-before-stale: 30
           days-before-close: 60
           exempt-issue-labels: awaiting-approval,work-in-progress
           exempt-pr-labels: awaiting-approval,work-in-progress
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          operations-per-run: 400
 
       - name: sleep for ratelimit
-        run: 
-          sleep 380
+        run: sleep 380
 
   lock:
     runs-on: ubuntu-latest
