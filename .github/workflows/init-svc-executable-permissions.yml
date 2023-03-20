@@ -11,7 +11,7 @@ jobs:
           fetch-depth: '0'
       - name: Check Permissions
         run: |
-          WRONG_PERM=$(find ./ -name run -not -perm -u=x,g=x,o=x && find ./ -name finish -not -perm -u=x,g=x,o=x)
+          WRONG_PERM=$(find ./ -name run -not -perm -u=x,g=x,o=x && find ./ -name finish -not -perm -u=x,g=x,o=x && find ./ -name check -not -perm -u=x,g=x,o=x)
           if [ -n "${WRONG_PERM}" ]; then
             for i in ${WRONG_PERM}; do
               echo "::error file=${i},line=1,title=Missing Executable Bit::This file needs to be set as executable!"
