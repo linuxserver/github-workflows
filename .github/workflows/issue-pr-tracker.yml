@@ -56,7 +56,7 @@ jobs:
           status_value: 'PRs Ready For Team Review'
       - name: Add Comment on Invalid Labeling
         uses: peter-evans/create-or-update-comment@v2.1.1
-        if: github.event_name == 'issues' && github.event.issue.state == 'open' && github.event.label.name == 'invalid'
+        if: ${{ github.event_name == 'issues' && github.event.issue.state == 'open' && github.event.label.name == 'invalid' && contains(github.event.issue.labels.*.name, 'invalid') }}
         with:
           issue-number: ${{ github.event.issue.number}}
           body: |
