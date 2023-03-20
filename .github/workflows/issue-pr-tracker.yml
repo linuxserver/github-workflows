@@ -1,0 +1,63 @@
+name: Callable Issue & PR Tracker
+
+on:
+  workflow_call:
+
+jobs:
+  manage-project:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Add Open Docker Related Issues Not Labeled Invalid
+        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
+        if: ${{ github.event_name == 'issues' && github.event.issue.state == 'open' && startsWith(github.event.repository.name, 'docker-') && ! contains(github.event.issue.labels.*.name, 'invalid') }}
+        with:
+          gh_token: ${{ secrets.CR_PAT }}
+          organization: linuxserver
+          project_id: 8
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: 'Issues'
+      - name: Add Open Non-Docker Related Issues Not Labeled Invalid
+        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
+        if: ${{ github.event_name == 'issues' && github.event.issue.state == 'open' && ! startsWith(github.event.repository.name, 'docker-') && ! contains(github.event.issue.labels.*.name, 'invalid') }}
+        with:
+          gh_token: ${{ secrets.CR_PAT }}
+          organization: linuxserver
+          project_id: 8
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: 'Non-Docker Issues'
+      - name: Add Open Issues Labeled Invalid
+        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
+        if: ${{ github.event_name == 'issues' && github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'invalid') }}
+        with:
+          gh_token: ${{ secrets.CR_PAT }}
+          organization: linuxserver
+          project_id: 8
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: 'Insufficient Info'
+      - name: Add Open PRs Without Review Requests
+        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
+        if: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.state == 'open' && github.event.pull_request.requested_reviewers[0] == null && github.event.pull_request.requested_teams[0] == null }}
+        with:
+          gh_token: ${{ secrets.CR_PAT }}
+          organization: linuxserver
+          project_id: 8
+          resource_node_id: ${{ github.event.pull_request.node_id }}
+          status_value: 'PRs'
+      - name: Add Open PRs With Review Requests
+        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
+        if: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.state == 'open' && (github.event.pull_request.requested_reviewers[0] != null || github.event.pull_request.requested_teams[0] != null) }}
+        with:
+          gh_token: ${{ secrets.CR_PAT }}
+          organization: linuxserver
+          project_id: 8
+          resource_node_id: ${{ github.event.pull_request.node_id }}
+          status_value: 'PRs Ready For Team Review'
+      - name: Add Comment on Invalid Labeling
+        uses: peter-evans/create-or-update-comment@v2.1.1
+        if: github.event_name == 'issues' && github.event.issue.state == 'open' && github.event.label.name == 'invalid'
+        with:
+          issue-number: ${{ github.event.issue.number}}
+          body: |
+            A human has marked this issue as invalid, this likely happened because the issue template was not used in the creation of the issue.
