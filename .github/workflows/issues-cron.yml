@@ -20,9 +20,9 @@ jobs:
           close-issue-label: closed-issue-activity
           close-pr-label: closed-pr-activity
           stale-issue-label: no-issue-activity
-          stale-issue-message: This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
+          stale-issue-message: This issue has been automatically marked as stale because it has not had recent activity. This might be due to missing feedback from OP. It will be closed if no further activity occurs. Thank you for your contributions.
           stale-pr-label: no-pr-activity
-          stale-pr-message: This pull request has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
+          stale-pr-message: This pull request has been automatically marked as stale because it has not had recent activity. This might be due to missing feedback from OP. It will be closed if no further activity occurs. Thank you for your contributions.
           days-before-stale: 30
           days-before-close: 60
           exempt-issue-labels: awaiting-approval,work-in-progress
@@ -44,9 +44,9 @@ jobs:
         with:
           issue-inactive-days: "30"
           include-any-issue-labels: no-issue-activity
-          issue-comment: This issue is locked due to inactivity
+          #issue-comment: This issue is locked due to inactivity
           exclude-any-issue-labels: awaiting-approval,work-in-progress
           pr-inactive-days: "30"
           include-any-pr-labels: no-pr-activity
-          pr-comment: This pull request is locked due to inactivity
+          #pr-comment: This pull request is locked due to inactivity
           exclude-any-pr-labels: awaiting-approval,work-in-progress
