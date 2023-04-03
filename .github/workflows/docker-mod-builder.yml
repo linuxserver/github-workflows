@@ -24,7 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Dump payload
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
@@ -47,9 +46,12 @@ jobs:
           echo "github.repository is ${{ github.repository }}"
           echo "github.event.pull_request.base.ref is ${{ github.event.pull_request.base.ref }}"
           echo "github.event.pull_request.base.repo.name is ${{ github.event.pull_request.base.repo.name }}"
+      - name: Set up qemu
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
       - name: Build image
         run: |
-          docker build --no-cache --build-arg MOD_VERSION=${MOD_VERSION} -t ${{ github.sha }} .
+          docker buildx build --no-cache --build-arg MOD_VERSION=${MOD_VERSION} -t ${{ github.sha }} .
       - name: Tag image (Commit)
         if: ${{ github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository }}
         run: |
