@@ -24,11 +24,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Dump payload
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: |
           echo "$GITHUB_CONTEXT"
+
       - name: Set Vars
         run: |
           echo "BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_ENV
@@ -36,6 +38,7 @@ jobs:
           echo "ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_ENV
           echo "GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_ENV
           echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_ENV
+
       - name: Dump vars
         run: |
           echo "BASEIMAGE is ${BASEIMAGE}"
@@ -46,12 +49,14 @@ jobs:
           echo "github.repository is ${{ github.repository }}"
           echo "github.event.pull_request.base.ref is ${{ github.event.pull_request.base.ref }}"
           echo "github.event.pull_request.base.repo.name is ${{ github.event.pull_request.base.repo.name }}"
-      - name: Set up qemu
-        run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: Build image
         run: |
           docker buildx build --no-cache --build-arg MOD_VERSION=${MOD_VERSION} -t ${{ github.sha }} .
+
       - name: Tag image (Commit)
         if: ${{ github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository }}
         run: |
@@ -65,11 +70,13 @@ jobs:
             docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
             docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
           fi
+
       - name: Tag image (PR)
         if: ${{ github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) }}
         run: |
           docker tag ${{ github.sha }} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-pull_request_${{ github.event.pull_request.number }}
           docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-pull_request_${{ github.event.pull_request.number }}
+
       - name: Credential check
         if: ${{ github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) }}
         run: |
@@ -83,10 +90,12 @@ jobs:
             echo "::error::See https://github.com/linuxserver/docker-mods/blob/master/README.md for more information/instructions."
             exit 1
           fi
+
       - name: Login to GitHub Container Registry
         if: ${{ (github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name)) && env.CR_USER && env.CR_PAT }}
         run: |
           echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u ${{ secrets.CR_USER }} --password-stdin
+
       - name: Push tags to GitHub Container Registry (Commit)
         if: ${{ github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.CR_USER && env.CR_PAT }}
         run: |
@@ -96,14 +105,17 @@ jobs:
             docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
             docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
           fi
+
       - name: Push tags to GitHub Container Registry (PR)
         if: ${{ github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.CR_USER && env.CR_PAT }}
         run: |
           docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-pull_request_${{ github.event.pull_request.number }}
+
       - name: Login to DockerHub
         if: ${{ (github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name)) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
           echo ${{ secrets.DOCKERPASS }} | docker login -u ${{ secrets.DOCKERUSER }} --password-stdin
+
       - name: Push tags to DockerHub (Commit)
         if: ${{ github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
@@ -113,6 +125,7 @@ jobs:
             docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
             docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
           fi
+
       - name: Push tags to DockerHub (PR)
         if: ${{ github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
