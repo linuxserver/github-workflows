@@ -42,12 +42,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Dump payload
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: |
-          echo "$GITHUB_CONTEXT"
-
       - name: Set Vars
         run: |
           echo "BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_ENV
@@ -55,17 +49,6 @@ jobs:
           echo "ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_ENV
           echo "GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_ENV
           echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_ENV
-
-      - name: Dump vars
-        run: |
-          echo "BASEIMAGE is ${BASEIMAGE}"
-          echo "GITHUB_REPO is ${GITHUB_REPO}"
-          echo "MODNAME is ${MODNAME}"
-          echo "ENDPOINT is ${ENDPOINT}"
-          echo "MOD_VERSION is ${MOD_VERSION}"
-          echo "github.repository is ${{ github.repository }}"
-          echo "github.event.pull_request.base.ref is ${{ github.event.pull_request.base.ref }}"
-          echo "github.event.pull_request.base.repo.name is ${{ github.event.pull_request.base.repo.name }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -89,13 +72,13 @@ jobs:
           fi
 
       - name: Tag image (PR)
-        if: ${{ github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) }}
+        if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) }}
         run: |
-          docker tag ${{ github.sha }} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-pull_request_${{ github.event.pull_request.number }}
-          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-pull_request_${{ github.event.pull_request.number }}
+          docker tag ${{ github.sha }} ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
 
       - name: Credential check
-        if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) }}
+        if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) }}
         run: |
           echo "CR_USER=${{ secrets.CR_USER }}" >> $GITHUB_ENV
           echo "CR_PAT=${{ secrets.CR_PAT }}" >> $GITHUB_ENV
@@ -109,7 +92,7 @@ jobs:
           fi
 
       - name: Login to GitHub Container Registry
-        if: ${{ (github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name)) && env.CR_USER && env.CR_PAT }}
+        if: ${{ (github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name)) && env.CR_USER && env.CR_PAT }}
         run: |
           echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u ${{ secrets.CR_USER }} --password-stdin
 
@@ -124,12 +107,12 @@ jobs:
           fi
 
       - name: Push tags to GitHub Container Registry (PR)
-        if: ${{ github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.CR_USER && env.CR_PAT }}
+        if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.CR_USER && env.CR_PAT }}
         run: |
-          docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-pull_request_${{ github.event.pull_request.number }}
+          docker push ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
 
       - name: Login to DockerHub
-        if: ${{ (github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name)) && env.DOCKERUSER && env.DOCKERPASS }}
+        if: ${{ (github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name)) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
           echo ${{ secrets.DOCKERPASS }} | docker login -u ${{ secrets.DOCKERUSER }} --password-stdin
 
@@ -144,6 +127,6 @@ jobs:
           fi
 
       - name: Push tags to DockerHub (PR)
-        if: ${{ github.event.pull_request.base.ref == format('{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.DOCKERUSER && env.DOCKERPASS }}
+        if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
-          docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-pull_request_${{ github.event.pull_request.number }}
+          docker push ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
