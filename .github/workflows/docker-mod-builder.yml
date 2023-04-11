@@ -18,6 +18,15 @@ on:
       MOD_VERSION:
         required: false
         type: string
+    secrets:
+      CR_USER:
+        required: false
+      CR_PAT:
+        required: false
+      DOCKERUSER:
+        required: false
+      DOCKERPASS:
+        required: false
 
 jobs:
   build:
