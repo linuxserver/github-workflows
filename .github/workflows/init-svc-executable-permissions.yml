@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3.5.0
         with:
-          fetch-depth: '0'
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Check Permissions
         run: |
           WRONG_PERM=$(find ./  -path "./.git" -prune -o \( -name "run" -o -name "service" -o -name "check" \) -not -perm -u=x,g=x,o=x -print)
