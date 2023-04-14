@@ -36,23 +36,14 @@ jobs:
           project_id: 8
           resource_node_id: ${{ github.event.issue.node_id }}
           status_value: 'Insufficient Info'
-      - name: Move Closed Issues to Done
+      - name: Move Closed Issues and PRs to Done
         uses: leonsteinhaeuser/project-beta-automations@v2.1.0
-        if: ${{ github.event.issue.state == 'closed' }}
+        if: ${{ github.event.issue.state == 'closed' || github.event.pull_request.state == 'closed' }}
         with:
           gh_token: ${{ secrets.CR_PAT }}
           organization: linuxserver
           project_id: 8
-          resource_node_id: ${{ github.event.issue.node_id }}
-          status_value: 'Done'
-      - name: Move Closed PRs to Done
-        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
-        if: ${{ github.event.pull_request.state == 'closed' }}
-        with:
-          gh_token: ${{ secrets.CR_PAT }}
-          organization: linuxserver
-          project_id: 8
-          resource_node_id: ${{ github.event.pull_request.node_id }}
+          resource_node_id: ${{ github.event.issue.node_id || github.event.pull_request.node_id }}
           status_value: 'Done'
       - name: Add Open PRs Without Review Requests
         uses: leonsteinhaeuser/project-beta-automations@v2.1.0
