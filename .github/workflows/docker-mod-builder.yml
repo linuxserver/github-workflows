@@ -45,10 +45,15 @@ jobs:
       - name: Set Vars
         run: |
           echo "BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_ENV
+          echo "BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_STEP_SUMMARY
           echo "MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_ENV
+          echo "MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_STEP_SUMMARY
           echo "ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_ENV
+          echo "ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_STEP_SUMMARY
           echo "GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_ENV
+          echo "GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_STEP_SUMMARY
           echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_ENV
+          echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -99,17 +104,24 @@ jobs:
       - name: Push tags to GitHub Container Registry (Commit)
         if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.CR_USER && env.CR_PAT }}
         run: |
-          docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}
           docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}
+          docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}
+          echo "Pushed the following images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}" >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           if [[ -n "${MOD_VERSION}" ]]; then
             docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
             docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
+            echo "ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}" >> $GITHUB_STEP_SUMMARY
+            echo "ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Push tags to GitHub Container Registry (PR)
         if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.CR_USER && env.CR_PAT }}
         run: |
           docker push ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+          echo "Pushed the following PR image/tag to GHCR:" >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Login to DockerHub
         if: ${{ (github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name)) && env.DOCKERUSER && env.DOCKERPASS }}
@@ -119,14 +131,21 @@ jobs:
       - name: Push tags to DockerHub (Commit)
         if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
-          docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}
           docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}
+          docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}
+          echo "Pushed the following images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+          echo "${ENDPOINT}:${BASEIMAGE}-${MODNAME}" >> $GITHUB_STEP_SUMMARY
+          echo "${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           if [[ -n "${MOD_VERSION}" ]]; then
             docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
             docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
+            echo "${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}" >> $GITHUB_STEP_SUMMARY
+            echo "${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Push tags to DockerHub (PR)
         if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
           docker push ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+          echo "Pushed the following PR image/tag to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+          echo "${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
