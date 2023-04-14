@@ -60,7 +60,7 @@ jobs:
       - name: Move Closed Issues and PRs to Done (summary comment)
         if: ${{ github.event.issue.state == 'closed' || github.event.pull_request.state == 'closed' }}
         run: |
-          echo 'Issue or PR [#${{ github.event.issue.number || github.even.pull_request.number }}](${{ github.event.issue.html_url || github.event.pull_request.html_url }}) is added to [project] column "Done"' >> $GITHUB_STEP_SUMMARY
+          echo 'Issue or PR [#${{ github.event.issue.number || github.event.pull_request.number }}](${{ github.event.issue.html_url || github.event.pull_request.html_url }}) is added to [project] column "Done"' >> $GITHUB_STEP_SUMMARY
       - name: Add Open PRs Without Review Requests
         uses: leonsteinhaeuser/project-beta-automations@v2.1.0
         if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review') && github.event.pull_request.state == 'open' && github.event.pull_request.requested_reviewers[0] == null && github.event.pull_request.requested_teams[0] == null && github.event.review.state != 'approved' }}
