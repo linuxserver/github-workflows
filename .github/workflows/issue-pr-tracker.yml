@@ -36,9 +36,27 @@ jobs:
           project_id: 8
           resource_node_id: ${{ github.event.issue.node_id }}
           status_value: 'Insufficient Info'
+      - name: Move Closed Issues to Done
+        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
+        if: ${{ github.event.issue.state == 'closed' }}
+        with:
+          gh_token: ${{ secrets.CR_PAT }}
+          organization: linuxserver
+          project_id: 8
+          resource_node_id: ${{ github.event.issue.node_id }}
+          status_value: 'Done'
+      - name: Move Closed PRs to Done
+        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
+        if: ${{ github.event.pull_request.state == 'closed' }}
+        with:
+          gh_token: ${{ secrets.CR_PAT }}
+          organization: linuxserver
+          project_id: 8
+          resource_node_id: ${{ github.event.pull_request.node_id }}
+          status_value: 'Done'
       - name: Add Open PRs Without Review Requests
         uses: leonsteinhaeuser/project-beta-automations@v2.1.0
-        if: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.state == 'open' && github.event.pull_request.requested_reviewers[0] == null && github.event.pull_request.requested_teams[0] == null }}
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review') && github.event.pull_request.state == 'open' && github.event.pull_request.requested_reviewers[0] == null && github.event.pull_request.requested_teams[0] == null && github.event.review.state != 'approved' }}
         with:
           gh_token: ${{ secrets.CR_PAT }}
           organization: linuxserver
@@ -47,7 +65,16 @@ jobs:
           status_value: 'PRs'
       - name: Add Open PRs With Review Requests
         uses: leonsteinhaeuser/project-beta-automations@v2.1.0
-        if: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.state == 'open' && (github.event.pull_request.requested_reviewers[0] != null || github.event.pull_request.requested_teams[0] != null) }}
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review') && github.event.pull_request.state == 'open' && (github.event.pull_request.requested_reviewers[0] != null || github.event.pull_request.requested_teams[0] != null) && github.event.review.state != 'approved' }}
+        with:
+          gh_token: ${{ secrets.CR_PAT }}
+          organization: linuxserver
+          project_id: 8
+          resource_node_id: ${{ github.event.pull_request.node_id }}
+          status_value: 'PRs Ready For Team Review'
+      - name: Move Approved PRs
+        uses: leonsteinhaeuser/project-beta-automations@v2.1.0
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review') && github.event.pull_request.state == 'open' && github.event.review.state == 'approved' }}
         with:
           gh_token: ${{ secrets.CR_PAT }}
           organization: linuxserver
