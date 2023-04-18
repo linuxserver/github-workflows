@@ -123,6 +123,15 @@ jobs:
           echo "Pushed the following PR image/tag to GHCR:" >> $GITHUB_STEP_SUMMARY
           echo "ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
 
+      - name: Add GHCR push comment to PR
+        uses: peter-evans/create-or-update-comment@v3.0.0
+        if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.CR_USER && env.CR_PAT }}
+        with:
+          token: ${{ secrets.CR_PAT }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            PR build pushed to `ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}`
+
       - name: Login to DockerHub
         if: ${{ (github.event_name == 'push' && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name)) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
