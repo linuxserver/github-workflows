@@ -18,9 +18,9 @@ jobs:
       - uses: actions/stale@v8.0.0
         with:
           close-issue-label: closed-issue-activity
-          close-issue-message: This issue is closed due to lack of feedback needed to resolve the issue. If not further action is taken, this issue will be closed.
+          close-issue-message: This issue has been closed due to inactivity or lack of feedback needed to resolve the issue. If no further action is taken, this issue will be locked in 30 days.
           close-pr-label: closed-pr-activity
-          close-pr-message: This pull request is closed due to lack of feedback needed to merge the pull request. If not further action is taken, this pull request will be closed.
+          close-pr-message: This pull request has been closed due to inactivity or lack of feedback needed to merge the pull request. If no further action is taken, this pull request will be locked in 30 days.
           days-before-close: 60
           days-before-stale: 30
           exempt-issue-labels: awaiting-approval,work-in-progress
