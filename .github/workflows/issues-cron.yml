@@ -40,7 +40,7 @@ jobs:
       - stale
 
     steps:
-      - uses: dessant/lock-threads@v4.0.0
+      - uses: dessant/lock-threads@v4.0.1
         with:
           issue-inactive-days: "30"
           include-any-issue-labels: no-issue-activity
