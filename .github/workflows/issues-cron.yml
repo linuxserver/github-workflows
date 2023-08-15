@@ -52,7 +52,7 @@ jobs:
           days-before-close: 60
           exempt-issue-labels: awaiting-approval,work-in-progress
           exempt-pr-labels: awaiting-approval,work-in-progress
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.CR_PAT }}
           operations-per-run: 400
 
       - name: sleep for ratelimit
