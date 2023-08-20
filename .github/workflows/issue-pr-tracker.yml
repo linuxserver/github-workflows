@@ -63,7 +63,7 @@ jobs:
           echo 'Issue or PR [#${{ github.event.issue.number || github.event.pull_request.number }}](${{ github.event.issue.html_url || github.event.pull_request.html_url }}) is added to [project](https://github.com/orgs/linuxserver/projects/8) column "Done"' >> $GITHUB_STEP_SUMMARY
       - name: Add Open PRs Without Review Requests
         uses: leonsteinhaeuser/project-beta-automations@v2.1.0
-        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && github.event.pull_request.requested_reviewers[0] == null && github.event.pull_request.requested_teams[0] == null && github.event.review.state != 'approved' && ! contains(github.event.issue.labels.*.name, 'closed-pr-activity') }}
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && github.event.pull_request.requested_reviewers[0] == null && github.event.pull_request.requested_teams[0] == null && github.event.review.state != 'approved' && ! contains(github.event.pull_request.labels.*.name, 'closed-pr-activity') }}
         with:
           gh_token: ${{ secrets.CR_PAT }}
           organization: linuxserver
@@ -71,12 +71,12 @@ jobs:
           resource_node_id: ${{ github.event.pull_request.node_id }}
           status_value: 'PRs'
       - name: Add Open PRs Without Review Requests (summary comment)
-        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && github.event.pull_request.requested_reviewers[0] == null && github.event.pull_request.requested_teams[0] == null && github.event.review.state != 'approved' && ! contains(github.event.issue.labels.*.name, 'closed-pr-activity') }}
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && github.event.pull_request.requested_reviewers[0] == null && github.event.pull_request.requested_teams[0] == null && github.event.review.state != 'approved' && ! contains(github.event.pull_request.labels.*.name, 'closed-pr-activity') }}
         run: |
           echo 'PR [#${{ github.event.pull_request.number }}](${{ github.event.pull_request.html_url }}) is added to [project](https://github.com/orgs/linuxserver/projects/8) column "PRs"' >> $GITHUB_STEP_SUMMARY
       - name: Add Open PRs With Review Requests
         uses: leonsteinhaeuser/project-beta-automations@v2.1.0
-        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && (github.event.pull_request.requested_reviewers[0] != null || github.event.pull_request.requested_teams[0] != null) && github.event.review.state != 'approved' && ! contains(github.event.issue.labels.*.name, 'closed-pr-activity') }}
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && (github.event.pull_request.requested_reviewers[0] != null || github.event.pull_request.requested_teams[0] != null) && github.event.review.state != 'approved' && ! contains(github.event.pull_request.labels.*.name, 'closed-pr-activity') }}
         with:
           gh_token: ${{ secrets.CR_PAT }}
           organization: linuxserver
@@ -84,12 +84,12 @@ jobs:
           resource_node_id: ${{ github.event.pull_request.node_id }}
           status_value: 'PRs Ready For Team Review'
       - name: Add Open PRs With Review Requests (summary comment)
-        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && (github.event.pull_request.requested_reviewers[0] != null || github.event.pull_request.requested_teams[0] != null) && github.event.review.state != 'approved' && ! contains(github.event.issue.labels.*.name, 'closed-pr-activity') }}
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && (github.event.pull_request.requested_reviewers[0] != null || github.event.pull_request.requested_teams[0] != null) && github.event.review.state != 'approved' && ! contains(github.event.pull_request.labels.*.name, 'closed-pr-activity') }}
         run: |
           echo 'PR [#${{ github.event.pull_request.number }}](${{ github.event.pull_request.html_url }}) is added to [project](https://github.com/orgs/linuxserver/projects/8) column "PRs Ready For Team Review"' >> $GITHUB_STEP_SUMMARY
       - name: Move Approved PRs
         uses: leonsteinhaeuser/project-beta-automations@v2.1.0
-        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && github.event.review.state == 'approved' && ! contains(github.event.issue.labels.*.name, 'closed-pr-activity') }}
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && github.event.review.state == 'approved' && ! contains(github.event.pull_request.labels.*.name, 'closed-pr-activity') }}
         with:
           gh_token: ${{ secrets.CR_PAT }}
           organization: linuxserver
@@ -97,7 +97,7 @@ jobs:
           resource_node_id: ${{ github.event.pull_request.node_id }}
           status_value: 'PRs Approved'
       - name: Move Approved PRs (summary comment)
-        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && github.event.review.state == 'approved' && ! contains(github.event.issue.labels.*.name, 'closed-pr-activity') }}
+        if: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' && github.event.pull_request.head.repo.owner.login == 'linuxserver') && github.event.pull_request.state == 'open' && github.event.review.state == 'approved' && ! contains(github.event.pull_request.labels.*.name, 'closed-pr-activity') }}
         run: |
           echo 'PR [#${{ github.event.pull_request.number }}](${{ github.event.pull_request.html_url }}) is added to [project](https://github.com/orgs/linuxserver/projects/8) column "PRs Approved"' >> $GITHUB_STEP_SUMMARY
       - name: Add Comment on Invalid Labeling
