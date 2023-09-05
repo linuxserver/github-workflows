@@ -6,7 +6,7 @@ jobs:
   permission_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.5.0
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Check Permissions
