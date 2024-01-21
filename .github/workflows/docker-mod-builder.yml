@@ -220,9 +220,6 @@ jobs:
       - name: Push tags to DockerHub (PR)
         if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
-          docker push ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
-          echo "Pushed the following PR image/tag to Docker Hub:" >> $GITHUB_STEP_SUMMARY
-          echo "${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
           if [[ "${MULTI_ARCH}" == "true" ]]; then
             docker push ${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}
             docker push ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
