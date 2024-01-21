@@ -194,7 +194,7 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
           if [[ "${MULTI_ARCH}" == "true" ]]; then
-            echo "Pushed the following images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
+            echo "Pushed the following images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
             for i in ${DOCKERHUB_TAGS}; do
               docker push ${i/:/:amd64-}
               echo "${i/:/:amd64-}" >> $GITHUB_STEP_SUMMARY
@@ -210,7 +210,7 @@ jobs:
               echo "${i}" >> $GITHUB_STEP_SUMMARY
             done
           else
-            echo "Pushed the following images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
+            echo "Pushed the following images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
             for i in ${DOCKERHUB_TAGS}; do
               docker push ${i}
               echo "${i}" >> $GITHUB_STEP_SUMMARY
