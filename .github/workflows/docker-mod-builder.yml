@@ -18,6 +18,9 @@ on:
       MOD_VERSION:
         required: false
         type: string
+      MULTI_ARCH:
+        required: false
+        type: string
     secrets:
       CR_USER:
         required: false
@@ -54,33 +57,54 @@ jobs:
           echo "GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_STEP_SUMMARY
           echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_ENV
           echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_ENV
+          echo "MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Build image
         run: |
-          docker buildx build --no-cache --build-arg MOD_VERSION=${MOD_VERSION} -t ${{ github.sha }} .
+          docker buildx build --no-cache --build-arg MOD_VERSION=${MOD_VERSION} -t ${{ github.sha }} --platform linux/amd64 .
+          if [[ "${MULTI_ARCH,,}" == "true" ]]; then
+            docker buildx build --no-cache --build-arg MOD_VERSION=${MOD_VERSION} -t arm64v8-${{ github.sha }} --platform linux/arm64/v8 .
+          fi
 
       - name: Tag image (Commit)
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository }}
         run: |
-          docker tag ${{ github.sha }} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}
-          docker tag ${{ github.sha }} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}
-          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}
-          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}
+          DOCKERHUB_TAGS="${ENDPOINT}:${BASEIMAGE}-${MODNAME} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}"
           if [[ -n "${MOD_VERSION}" ]]; then
-            docker tag ${{ github.sha }} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
-            docker tag ${{ github.sha }} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
-            docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
-            docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
+            DOCKERHUB_TAGS="${DOCKERHUB_TAGS} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}"
+          fi
+          echo "DOCKERHUB_TAGS=${DOCKERHUB_TAGS}" >> $GITHUB_ENV
+          if [[ "${MULTI_ARCH,,}" == "true" ]]; then
+            for i in ${DOCKERHUB_TAGS}; do
+              docker tag ${{ github.sha }} ${i/:/:amd64-}
+              docker tag arm64v8-${{ github.sha }} ${i/:/:arm64v8-}
+              ighcr="${i/#/ghcr.io\/}"
+              docker tag ${{ github.sha }} ${ighcr/:/:amd64-}
+              docker tag arm64v8-${{ github.sha }} ${ighcr/:/:arm64v8-}
+            done
+          else
+            for i in ${DOCKERHUB_TAGS}; do
+              docker tag ${{ github.sha }} ${i}
+              docker tag ${{ github.sha }} ${i/#/ghcr.io\/}
+            done
           fi
 
       - name: Tag image (PR)
         if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) }}
         run: |
-          docker tag ${{ github.sha }} ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
-          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+          if [[ "${MULTI_ARCH,,}" == "true" ]]; then
+            docker tag ${{ github.sha }} ${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}
+            docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}
+            docker tag arm64v8-${{ github.sha }} ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
+            docker tag arm64v8-${{ github.sha }} ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
+          else
+            docker tag ${{ github.sha }} ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+            docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+          fi
 
       - name: Credential check
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository || env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) }}
@@ -104,24 +128,53 @@ jobs:
       - name: Push tags to GitHub Container Registry (Commit)
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.CR_USER && env.CR_PAT }}
         run: |
-          docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}
-          docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}
-          echo "Pushed the following images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          if [[ -n "${MOD_VERSION}" ]]; then
-            docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
-            docker push ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
-            echo "ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}" >> $GITHUB_STEP_SUMMARY
-            echo "ghcr.io/${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${MULTI_ARCH,,}" == "true" ]]; then
+            echo "Pushed the following images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
+            for i in ${DOCKERHUB_TAGS}; do
+              ighcr="${i/#/ghcr.io\/}"
+              docker push ${ighcr/:/:amd64-}
+              echo "${ighcr/:/:amd64-}" >> $GITHUB_STEP_SUMMARY
+              docker push ${ighcr/:/:arm64v8-}
+              echo "${ighcr/:/:arm64v8-}" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "Pushed the following manifests to GHCR:" >> $GITHUB_STEP_SUMMARY
+            for i in ${DOCKERHUB_TAGS}; do
+              ighcr="${i/#/ghcr.io\/}"
+              docker manifest push --purge ${ighcr} || :
+              docker manifest create ${ighcr} ${ighcr/:/:amd64-} ${ighcr/:/:arm64v8-}
+              docker manifest annotate ${ighcr} ${ighcr/:/:arm64v8-} --os linux --arch arm64 --variant v8
+              docker manifest push --purge ${ighcr}
+              echo "${ighcr}" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "Pushed the following images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
+            for i in ${DOCKERHUB_TAGS}; do
+              ighcr="${i/#/ghcr.io\/}"
+              docker push ${ighcr}
+              echo "${ighcr}" >> $GITHUB_STEP_SUMMARY
+            done
           fi
 
       - name: Push tags to GitHub Container Registry (PR)
         if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.CR_USER && env.CR_PAT }}
         run: |
-          docker push ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
-          echo "Pushed the following PR image/tag to GHCR:" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${MULTI_ARCH,,}" == "true" ]]; then
+            docker push ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}
+            docker push ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
+            echo "Pushed the following PR images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
+            echo "ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            echo "ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            docker manifest push --purge ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} || :
+            docker manifest create ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }} ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
+            docker manifest annotate ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }} --os linux --arch arm64 --variant v8
+            docker manifest push --purge ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+            echo "Pushed the following PR manifest to GHCR:" >> $GITHUB_STEP_SUMMARY
+            echo "ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          else
+            docker push ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+            echo "Pushed the following PR image/tag to GHCR:" >> $GITHUB_STEP_SUMMARY
+            echo "ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Add GHCR push comment to PR
         uses: peter-evans/create-or-update-comment@v4.0.0
@@ -140,21 +193,47 @@ jobs:
       - name: Push tags to DockerHub (Commit)
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
-          docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}
-          docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}
-          echo "Pushed the following images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
-          echo "${ENDPOINT}:${BASEIMAGE}-${MODNAME}" >> $GITHUB_STEP_SUMMARY
-          echo "${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          if [[ -n "${MOD_VERSION}" ]]; then
-            docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}
-            docker push ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}
-            echo "${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}" >> $GITHUB_STEP_SUMMARY
-            echo "${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${MULTI_ARCH,,}" == "true" ]]; then
+            echo "Pushed the following images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            for i in ${DOCKERHUB_TAGS}; do
+              docker push ${i/:/:amd64-}
+              echo "${i/:/:amd64-}" >> $GITHUB_STEP_SUMMARY
+              docker push ${i/:/:arm64v8-}
+              echo "${i/:/:arm64v8-}" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "Pushed the following manifests to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            for i in ${DOCKERHUB_TAGS}; do
+              docker manifest push --purge ${i} || :
+              docker manifest create ${i} ${i/:/:amd64-} ${i/:/:arm64v8-}
+              docker manifest annotate ${i} ${i/:/:arm64v8-} --os linux --arch arm64 --variant v8
+              docker manifest push --purge ${i}
+              echo "${i}" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "Pushed the following images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            for i in ${DOCKERHUB_TAGS}; do
+              docker push ${i}
+              echo "${i}" >> $GITHUB_STEP_SUMMARY
+            done
           fi
 
       - name: Push tags to DockerHub (PR)
         if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
-          docker push ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
-          echo "Pushed the following PR image/tag to Docker Hub:" >> $GITHUB_STEP_SUMMARY
-          echo "${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${MULTI_ARCH,,}" == "true" ]]; then
+            docker push ${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}
+            docker push ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
+            echo "Pushed the following PR images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            echo "${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            echo "${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            docker manifest push --purge ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} || :
+            docker manifest create ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }} ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
+            docker manifest annotate ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }} --os linux --arch arm64 --variant v8
+            docker manifest push --purge ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+            echo "Pushed the following PR manifest to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            echo "${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          else
+            docker push ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
+            echo "Pushed the following PR image/tag to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            echo "${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          fi
