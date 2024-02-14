@@ -124,7 +124,7 @@ jobs:
           echo "ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Add GHCR push comment to PR
-        uses: peter-evans/create-or-update-comment@v3.1.0
+        uses: peter-evans/create-or-update-comment@v4.0.0
         if: ${{ env.GITHUB_REPO == format('{0}/{1}', github.event.pull_request.base.repo.owner.login, github.event.pull_request.base.repo.name) && env.CR_USER && env.CR_PAT }}
         with:
           token: ${{ secrets.CR_PAT }}
