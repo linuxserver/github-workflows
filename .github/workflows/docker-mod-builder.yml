@@ -21,6 +21,7 @@ on:
       MOD_VERSION_OVERRIDE:
         required: false
         type: string
+        default: "false"
       MULTI_ARCH:
         required: false
         type: string
