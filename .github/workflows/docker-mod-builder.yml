@@ -21,7 +21,6 @@ on:
       MOD_VERSION_OVERRIDE:
         required: false
         type: string
-        default: "false"
       MULTI_ARCH:
         required: false
         type: string
@@ -56,7 +55,7 @@ jobs:
           echo "BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_ENV
           echo "MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_ENV
           echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_ENV
-          echo "MOD_VERSION_OVERRIDE=${{ inputs.MOD_VERSION_OVERRIDE }}" >> $GITHUB_ENV
+          echo "MOD_VERSION_OVERRIDE=${{ inputs.MOD_VERSION_OVERRIDE || 'false' }}" >> $GITHUB_ENV
           echo "MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_ENV
           echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
           echo "> GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_STEP_SUMMARY
@@ -64,7 +63,7 @@ jobs:
           echo "> BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_STEP_SUMMARY
           echo "> MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_STEP_SUMMARY
           echo "> MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "> MOD_VERSION_OVERRIDE=${{ inputs.MOD_VERSION_OVERRIDE }}" >> $GITHUB_STEP_SUMMARY
+          echo "> MOD_VERSION_OVERRIDE=${{ inputs.MOD_VERSION_OVERRIDE || 'false' }}" >> $GITHUB_STEP_SUMMARY
           echo "> MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Set up QEMU
