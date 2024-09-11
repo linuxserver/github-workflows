@@ -18,6 +18,9 @@ on:
       MOD_VERSION:
         required: false
         type: string
+      MOD_VERSION_OVERRIDE:
+        required: false
+        type: string
       MULTI_ARCH:
         required: false
         type: string
@@ -47,18 +50,21 @@ jobs:
 
       - name: Set Vars
         run: |
-          echo "BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_ENV
-          echo "BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_STEP_SUMMARY
-          echo "MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_ENV
-          echo "MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_STEP_SUMMARY
-          echo "ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_ENV
-          echo "ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_STEP_SUMMARY
           echo "GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_ENV
-          echo "GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_STEP_SUMMARY
+          echo "ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_ENV
+          echo "BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_ENV
+          echo "MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_ENV
           echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_ENV
-          echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "MOD_VERSION_OVERRIDE=${{ inputs.MOD_VERSION_OVERRIDE }}" >> $GITHUB_ENV
           echo "MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_ENV
-          echo "MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_STEP_SUMMARY
+          echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
+          echo "> GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_STEP_SUMMARY
+          echo "> ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_STEP_SUMMARY
+          echo "> BASEIMAGE=${{ inputs.BASEIMAGE }}" >> $GITHUB_STEP_SUMMARY
+          echo "> MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "> MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "> MOD_VERSION_OVERRIDE=${{ inputs.MOD_VERSION_OVERRIDE }}" >> $GITHUB_STEP_SUMMARY
+          echo "> MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -75,7 +81,11 @@ jobs:
         run: |
           DOCKERHUB_TAGS="${ENDPOINT}:${BASEIMAGE}-${MODNAME} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${{ github.sha }}"
           if [[ -n "${MOD_VERSION}" ]]; then
-            DOCKERHUB_TAGS="${DOCKERHUB_TAGS} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}"
+            if [[ "${MOD_VERSION_OVERRIDE,,}" == "true" ]]; then
+              DOCKERHUB_TAGS="${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}"
+            else
+              DOCKERHUB_TAGS="${DOCKERHUB_TAGS} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION} ${ENDPOINT}:${BASEIMAGE}-${MODNAME}-${MOD_VERSION}-${{ github.sha }}"
+            fi
           fi
           echo "DOCKERHUB_TAGS=${DOCKERHUB_TAGS}" >> $GITHUB_ENV
           if [[ "${MULTI_ARCH,,}" == "true" ]]; then
@@ -129,29 +139,26 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.CR_USER && env.CR_PAT }}
         run: |
           if [[ "${MULTI_ARCH,,}" == "true" ]]; then
-            echo "Pushed the following images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following images/tags to GHCR:\n\n" >> $GITHUB_STEP_SUMMARY
             for i in ${DOCKERHUB_TAGS}; do
               ighcr="${i/#/ghcr.io\/}"
               docker push ${ighcr/:/:amd64-}
-              echo "${ighcr/:/:amd64-}" >> $GITHUB_STEP_SUMMARY
+              echo "\`${ighcr/:/:amd64-}\`" >> $GITHUB_STEP_SUMMARY
               docker push ${ighcr/:/:arm64v8-}
-              echo "${ighcr/:/:arm64v8-}" >> $GITHUB_STEP_SUMMARY
+              echo "\`${ighcr/:/:arm64v8-}\`" >> $GITHUB_STEP_SUMMARY
             done
-            echo "Pushed the following manifests to GHCR:" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following manifests to GHCR:\n\n" >> $GITHUB_STEP_SUMMARY
             for i in ${DOCKERHUB_TAGS}; do
               ighcr="${i/#/ghcr.io\/}"
-              docker manifest push --purge ${ighcr} || :
-              docker manifest create ${ighcr} ${ighcr/:/:amd64-} ${ighcr/:/:arm64v8-}
-              docker manifest annotate ${ighcr} ${ighcr/:/:arm64v8-} --os linux --arch arm64 --variant v8
-              docker manifest push --purge ${ighcr}
-              echo "${ighcr}" >> $GITHUB_STEP_SUMMARY
+              docker buildx imagetools create -t ${ighcr} ${ighcr/:/:amd64-} ${ighcr/:/:arm64v8-}
+              echo "\`${ighcr}\`" >> $GITHUB_STEP_SUMMARY
             done
           else
-            echo "Pushed the following images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following images/tags to GHCR:\n\n" >> $GITHUB_STEP_SUMMARY
             for i in ${DOCKERHUB_TAGS}; do
               ighcr="${i/#/ghcr.io\/}"
               docker push ${ighcr}
-              echo "${ighcr}" >> $GITHUB_STEP_SUMMARY
+              echo "\`${ighcr}\`" >> $GITHUB_STEP_SUMMARY
             done
           fi
 
@@ -161,19 +168,16 @@ jobs:
           if [[ "${MULTI_ARCH,,}" == "true" ]]; then
             docker push ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}
             docker push ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
-            echo "Pushed the following PR images/tags to GHCR:" >> $GITHUB_STEP_SUMMARY
-            echo "ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
-            echo "ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
-            docker manifest push --purge ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} || :
-            docker manifest create ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }} ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
-            docker manifest annotate ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }} --os linux --arch arm64 --variant v8
-            docker manifest push --purge ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
-            echo "Pushed the following PR manifest to GHCR:" >> $GITHUB_STEP_SUMMARY
-            echo "ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following PR images/tags to GHCR:\n\n" >> $GITHUB_STEP_SUMMARY
+            echo "\`ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "\`ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
+            docker buildx imagetools create -t ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ghcr.io/${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }} ghcr.io/${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
+            printf "\n## Pushed the following PR manifest to GHCR:\n\n" >> $GITHUB_STEP_SUMMARY
+            echo "\`ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
           else
             docker push ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
-            echo "Pushed the following PR image/tag to GHCR:" >> $GITHUB_STEP_SUMMARY
-            echo "ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following PR image/tag to GHCR:\n\n" >> $GITHUB_STEP_SUMMARY
+            echo "\`ghcr.io/${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Add GHCR push comment to PR
@@ -194,26 +198,23 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == format('refs/heads/{0}-{1}', env.BASEIMAGE, env.MODNAME) && env.GITHUB_REPO == github.repository && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
           if [[ "${MULTI_ARCH,,}" == "true" ]]; then
-            echo "Pushed the following images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following images/tags to Docker Hub:\n\n" >> $GITHUB_STEP_SUMMARY
             for i in ${DOCKERHUB_TAGS}; do
               docker push ${i/:/:amd64-}
-              echo "${i/:/:amd64-}" >> $GITHUB_STEP_SUMMARY
+              echo "\`${i/:/:amd64-}\`" >> $GITHUB_STEP_SUMMARY
               docker push ${i/:/:arm64v8-}
-              echo "${i/:/:arm64v8-}" >> $GITHUB_STEP_SUMMARY
+              echo "\`${i/:/:arm64v8-}\`" >> $GITHUB_STEP_SUMMARY
             done
-            echo "Pushed the following manifests to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following manifests to Docker Hub:\n\n" >> $GITHUB_STEP_SUMMARY
             for i in ${DOCKERHUB_TAGS}; do
-              docker manifest push --purge ${i} || :
-              docker manifest create ${i} ${i/:/:amd64-} ${i/:/:arm64v8-}
-              docker manifest annotate ${i} ${i/:/:arm64v8-} --os linux --arch arm64 --variant v8
-              docker manifest push --purge ${i}
-              echo "${i}" >> $GITHUB_STEP_SUMMARY
+              docker buildx imagetools create -t ${i} ${i/:/:amd64-} ${i/:/:arm64v8-}
+              echo "\`${i}\`" >> $GITHUB_STEP_SUMMARY
             done
           else
-            echo "Pushed the following images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following images/tags to Docker Hub:\n\n" >> $GITHUB_STEP_SUMMARY
             for i in ${DOCKERHUB_TAGS}; do
               docker push ${i}
-              echo "${i}" >> $GITHUB_STEP_SUMMARY
+              echo "\`${i}\`" >> $GITHUB_STEP_SUMMARY
             done
           fi
 
@@ -223,17 +224,14 @@ jobs:
           if [[ "${MULTI_ARCH,,}" == "true" ]]; then
             docker push ${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}
             docker push ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
-            echo "Pushed the following PR images/tags to Docker Hub:" >> $GITHUB_STEP_SUMMARY
-            echo "${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
-            echo "${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
-            docker manifest push --purge ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} || :
-            docker manifest create ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }} ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
-            docker manifest annotate ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }} --os linux --arch arm64 --variant v8
-            docker manifest push --purge ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
-            echo "Pushed the following PR manifest to Docker Hub:" >> $GITHUB_STEP_SUMMARY
-            echo "${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following PR images/tags to Docker Hub:\n\n" >> $GITHUB_STEP_SUMMARY
+            echo "\`${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "\`${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
+            docker buildx imagetools create -t ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }} ${ENDPOINT}:amd64-pull_request_${{ github.event.pull_request.number }} ${ENDPOINT}:arm64v8-pull_request_${{ github.event.pull_request.number }}
+            printf "\n## Pushed the following PR manifest to Docker Hub:\n\n" >> $GITHUB_STEP_SUMMARY
+            echo "\`${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
           else
             docker push ${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}
-            echo "Pushed the following PR image/tag to Docker Hub:" >> $GITHUB_STEP_SUMMARY
-            echo "${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            printf "\n## Pushed the following PR image/tag to Docker Hub:\n\n" >> $GITHUB_STEP_SUMMARY
+            echo "\`${ENDPOINT}:pull_request_${{ github.event.pull_request.number }}\`" >> $GITHUB_STEP_SUMMARY
           fi
