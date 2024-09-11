@@ -56,7 +56,7 @@ jobs:
           echo "MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_ENV
           echo "MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_ENV
           echo "MOD_VERSION_OVERRIDE=${{ inputs.MOD_VERSION_OVERRIDE || 'false' }}" >> $GITHUB_ENV
-          echo "MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_ENV
+          echo "MULTI_ARCH=${{ inputs.MULTI_ARCH || 'false' }}" >> $GITHUB_ENV
           echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
           echo "> GITHUB_REPO=${{ inputs.GITHUB_REPO }}" >> $GITHUB_STEP_SUMMARY
           echo "> ENDPOINT=${{ inputs.ENDPOINT }}" >> $GITHUB_STEP_SUMMARY
@@ -64,7 +64,7 @@ jobs:
           echo "> MODNAME=${{ inputs.MODNAME }}" >> $GITHUB_STEP_SUMMARY
           echo "> MOD_VERSION=${{ inputs.MOD_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "> MOD_VERSION_OVERRIDE=${{ inputs.MOD_VERSION_OVERRIDE || 'false' }}" >> $GITHUB_STEP_SUMMARY
-          echo "> MULTI_ARCH=${{ inputs.MULTI_ARCH }}" >> $GITHUB_STEP_SUMMARY
+          echo "> MULTI_ARCH=${{ inputs.MULTI_ARCH || 'false' }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
