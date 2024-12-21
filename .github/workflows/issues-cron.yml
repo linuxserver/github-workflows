@@ -75,3 +75,4 @@ jobs:
           include-any-pr-labels: no-pr-activity
           pr-comment: This pull request is locked due to inactivity
           exclude-any-pr-labels: awaiting-approval,work-in-progress
+          github-token: ${{ secrets.CR_PAT }}
