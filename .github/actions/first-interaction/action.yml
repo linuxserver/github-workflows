@@ -1,0 +1,28 @@
+name: First Interaction
+description: Greet first-time contributors when they open an issue or PR
+# Based on https://github.com/actions/first-interaction/blob/main/action.yml
+
+inputs:
+  issue_message:
+    description: Comment to post on an individual's first issue
+    required: false
+    type: string
+  pr_message:
+    description: Comment to post on an individual's first pull request
+    required: false
+    type: string
+  repo_token:
+    description: Token with permissions to post issue and PR comments
+    required: true
+    type: string
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: First Interaction
+      uses: actions/first-interaction@v3.1.0
+      with:
+        issue_message: ${{ inputs.issue_message != '' && inputs.issue_message || '' }}
+        pr_message: ${{ inputs.pr_message != '' && inputs.pr_message || '' }}
+        repo_token: ${{ inputs.repo_token }}

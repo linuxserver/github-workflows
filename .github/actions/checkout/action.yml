@@ -1,0 +1,40 @@
+name: Checkout
+description: Checkout a Git repository at a particular version
+# Based on https://github.com/actions/checkout/blob/main/action.yml
+
+inputs:
+  ref:
+    description: >
+      The branch, tag or SHA to checkout. When checking out the repository that
+      triggered a workflow, this defaults to the reference or SHA for that
+      event.  Otherwise, uses the default branch.
+    required: false
+    type: string
+  persist-credentials:
+    description: Whether to configure the token or SSH key with the local git config
+    required: false
+    type: boolean
+    default: true
+  fetch-depth:
+    description: Number of commits to fetch. 0 indicates all history for all branches and tags.
+    required: false
+    type: number
+    default: 1
+outputs:
+  ref:
+    description: The branch, tag or SHA that was checked out
+    value: ${{ steps.checkout.outputs.ref }}
+  commit:
+    description: The commit SHA that was checked out
+    value: ${{ steps.checkout.outputs.commit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout Code
+      id: checkout
+      uses: actions/checkout@v7.0.0
+      with:
+        ref: ${{ inputs.ref != '' && inputs.ref || '' }}
+        persist-credentials: ${{ inputs.persist-credentials }}
+        fetch-depth: ${{ inputs.fetch-depth }}
