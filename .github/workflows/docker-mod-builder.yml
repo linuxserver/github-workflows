@@ -39,13 +39,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check Out Repo (Commit)
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.0
         if: ${{ github.event_name != 'pull_request_target' }}
         with:
           persist-credentials: false
 
       - name: Check Out Repo (PR)
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.0
         if: ${{ github.event_name == 'pull_request_target' }}
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -70,7 +70,7 @@ jobs:
           echo "> MULTI_ARCH=${{ inputs.MULTI_ARCH || 'false' }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@v4.2.0
 
       - name: Build image
         run: |
