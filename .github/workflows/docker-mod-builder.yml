@@ -70,7 +70,7 @@ jobs:
           echo "> MULTI_ARCH=${{ inputs.MULTI_ARCH || 'false' }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4.2.0
+        uses: docker/setup-qemu-action@v4.3.0
 
       - name: Build image
         run: |
