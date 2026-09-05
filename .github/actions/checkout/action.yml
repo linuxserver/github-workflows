@@ -33,7 +33,7 @@ runs:
   steps:
     - name: Checkout Code
       id: checkout
-      uses: actions/checkout@v7.0.0
+      uses: actions/checkout@v7.0.1
       with:
         ref: ${{ inputs.ref != '' && inputs.ref || '' }}
         persist-credentials: ${{ inputs.persist-credentials }}
