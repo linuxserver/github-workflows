@@ -6,13 +6,18 @@ jobs:
   permission_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
       - name: Check Permissions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          WRONG_PERM=$(find ./  -path "./.git" -prune -o \( -name "run" -o -name "finish" -o -name "check" \) -not -perm -u=x,g=x,o=x -print)
+          TREE=$(gh api "repos/${REPO}/git/trees/${HEAD_SHA}?recursive=1")
+          if [ "$(jq -r '.truncated' <<< "${TREE}")" = "true" ]; then
+            echo "::error title=Tree Truncated::The tree of ${HEAD_SHA} is too large to check through the API"
+            exit 1
+          fi
+          WRONG_PERM=$(jq -r '.tree[] | select(.mode == "100644") | .path | select(test("(^|/)(run|finish|check)$"))' <<< "${TREE}")
           if [ -n "${WRONG_PERM}" ]; then
             for i in ${WRONG_PERM}; do
               echo "::error file=${i},line=1,title=Missing Executable Bit::This file needs to be set as executable!"
